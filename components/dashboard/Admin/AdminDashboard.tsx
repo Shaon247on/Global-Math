@@ -48,7 +48,7 @@ function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+    <div className="space-y-4 sm:space-y-6 p-4 lg:p-0">
       {/* Date Range Selector */}
       <div className="flex items-center justify-end">
         <div className="w-fit py-2 px-2 sm:py-2.5 sm:px-4 rounded-xl sm:rounded-2xl border-2 border-black bg-white">
@@ -111,7 +111,7 @@ function AdminDashboard() {
 
         {/* Right Side: Subject Performance - Same Height as Left Side */}
         <div className="h-full">
-          <SubjectPerformance />
+          <SubjectPerformance isDashboard={true}/>
         </div>
       </div>
     </div>

@@ -19,9 +19,13 @@ const subjectPerformanceData: SubjectData[] = [
   { name: "Regenerating Places", percentage: 52 },
 ];
 
-export default function SubjectPerformance() {
+interface SubjectPerformanceProps{
+    isDashboard: boolean
+}
+
+export default function SubjectPerformance({isDashboard}:SubjectPerformanceProps) {
   return (
-    <Card className="w-full h-full">
+    <Card className="w-full">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg sm:text-xl font-semibold">
           Subject Performance{" "}
@@ -30,7 +34,7 @@ export default function SubjectPerformance() {
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-5">
+      <CardContent className={`space-y-2  ${isDashboard ? "sm:space-y-8":"sm:space-y-2.5"}`}>
         {subjectPerformanceData.map((subject, index) => (
           <div key={index} className="space-y-2">
             <div className="flex items-center justify-between">

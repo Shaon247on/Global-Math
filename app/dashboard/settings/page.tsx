@@ -1,9 +1,9 @@
-import React from 'react'
+import ProfileSettings from '@/components/dashboard/Profile/ProfileSettings'
 
 function page() {
   return (
     <div>
-      settings
+      <ProfileSettings/>
     </div>
   )
 }

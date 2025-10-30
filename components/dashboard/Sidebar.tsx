@@ -39,6 +39,16 @@ const Sidebar = ({
     },
   ];
 
+  // Helper function to check if route is active
+  const isRouteActive = (routePath: string) => {
+    // Exact match for dashboard overview
+    if (routePath === "/dashboard") {
+      return pathname === "/dashboard";
+    }
+    // For other routes, check if pathname starts with the route path
+    return pathname.startsWith(routePath);
+  };
+
   return (
     <>
       {/* Mobile/Tablet Overlay - Only shows when sidebar is open on small screens */}
@@ -79,7 +89,7 @@ const Sidebar = ({
             <ul className="space-y-1">
               {routes.map((route) => {
                 const Icon = route.icon;
-                const isActive = pathname === route.path;
+                const isActive = isRouteActive(route.path);
                 return (
                   <li key={route.path}>
                     <Link

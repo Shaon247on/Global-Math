@@ -1,9 +1,9 @@
-import React from 'react'
+import QuizConfiguration from '@/components/dashboard/QuizConfiguration/QuizConfiguration'
 
 function page() {
   return (
     <div>
-      quiz-configuration
+      <QuizConfiguration/>
     </div>
   )
 }

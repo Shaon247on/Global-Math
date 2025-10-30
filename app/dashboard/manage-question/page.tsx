@@ -1,9 +1,10 @@
+import ModuleQuestion from '@/components/dashboard/ModuleQuestion/ModuleQuestion'
 import React from 'react'
 
 function page() {
   return (
     <div>
-      manage-question
+      <ModuleQuestion/>
     </div>
   )
 }

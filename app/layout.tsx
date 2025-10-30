@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "sonner";
 
 const noto = Noto_Sans({
   variable: "--font-noto_sans",
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body
         className={`${noto.variable} antialiased font-noto`}
       >
+        <Toaster position="top-right" richColors />
         {children}
       </body>
     </html>

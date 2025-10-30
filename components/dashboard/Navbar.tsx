@@ -23,6 +23,11 @@ const Navbar = ({ onMenuClick }: { onMenuClick?: () => void }) => {
       settings: "Profile",
     };
 
+    // Check if we're on a nested route under manage-question
+    if (pathname.startsWith("/dashboard/manage-question")) {
+      return "Manage Question";
+    }
+
     // last part of the path (eg. "profile")
     const last = parts[parts.length - 1];
     return routes[last] || "Dashboard";

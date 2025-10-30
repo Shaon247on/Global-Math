@@ -16,7 +16,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className="">
           <Navbar onMenuClick={() => setSidebarOpen(true)} />
         </div>
-        <div className="w-full mt-4 px-4">{children}</div>
+        <div className="w-full lg:mt-4  lg:pr-4">{children}</div>
       </main>
     </section>
   );

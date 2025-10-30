@@ -1,9 +1,9 @@
-import React from 'react'
+import ModuleManagement from '@/components/dashboard/ModuleManagement/ModuleManagement'
 
 function page() {
   return (
     <div>
-      manage-module
+      <ModuleManagement/>
     </div>
   )
 }

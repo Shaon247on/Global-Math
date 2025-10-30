@@ -1,9 +1,11 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import React from 'react'
 
 function Logo() {
   return (
-    <div>
+    <Link href={"/dashboard"}>
+    <div className='cursor-pointer'>
       <Image
       src={"/logo.png"}
       alt='logo Image'
@@ -15,6 +17,7 @@ function Logo() {
         GEOGRAPHY <br />GEYSER
       </h2>
     </div>
+    </Link>
   )
 }
 
