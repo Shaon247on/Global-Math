@@ -32,9 +32,10 @@ import { toast } from "sonner";
 import Link from "next/link";
 import type { Module } from "@/data/moduleData";
 import AddModuleDialog from "./AddModuleDialog";
+import { ModuleItem } from "@/types/module.type";
 
 interface ModuleTableProps {
-  modules: Module[];
+  modules: ModuleItem[];
   onDelete: (moduleId: string) => void;
 }
 
@@ -117,18 +118,18 @@ export default function ModuleTable({ modules, onDelete }: ModuleTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentModules.map((module) => (
+              {currentModules.map((module, index) => (
                 <TableRow key={module.id} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">{module.serial}</TableCell>
+                  <TableCell className="font-medium">{index +1}</TableCell>
                   <TableCell className="font-medium">
-                    {module.moduleName}
+                    {module.module_name}
                   </TableCell>
                   <TableCell className="lg:pl-12">
-                    {module.numberOfQuestions}
+                    {module.numberOfQuestions || "--"}
                   </TableCell>
-                  <TableCell className="lg:pl-8">{module.topScore}</TableCell>
+                  <TableCell className="lg:pl-8">{module.topScore || "--"}</TableCell>
                   <TableCell className="lg:pl-8">
-                    {module.quizAttended}
+                    {module.quizAttended || "--"}
                   </TableCell>
                   <TableCell>
                     <Link href={`/dashboard/manage-module/${module.id}`}>

@@ -6,7 +6,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <section>
+    <section className="max-w-[1920px] mx-auto">
       <AdminLayout>{children}</AdminLayout>
     </section>
   );

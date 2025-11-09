@@ -12,7 +12,7 @@ export default function ModuleHeaderActions({
   onAddModule,
 }: ModuleHeaderActionsProps) {
   return (
-    <div className="flex bg-white p-4 justify-end flex-col md:flex-row gap-3 pb-6 lg:pb-0 lg:mb-6">
+    <div className="flex bg-white p-4 justify-end flex-col md:flex-row gap-3 pb-6 lg:pb-4 lg:mb-6">
       <Button
         onClick={onSetOptional}
         variant="outline"

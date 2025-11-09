@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Clock, List, Plus, X } from "lucide-react";
+import { Clock, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 export default function QuizConfiguration() {
@@ -23,7 +23,7 @@ export default function QuizConfiguration() {
 
   // Quantity state
   const [quantities, setQuantities] = useState<number[]>([]);
-  const [selectedQuantity, setSelectedQuantity] = useState<number | null>(null);
+  // const [selectedQuantity, setSelectedQuantity] = useState<number | null>(null);
   const [quantityDialogOpen, setQuantityDialogOpen] = useState(false);
   const [customQuantity, setCustomQuantity] = useState("");
 
@@ -33,9 +33,9 @@ export default function QuizConfiguration() {
   };
 
   // Handle quantity selection
-  const handleQuantityClick = (quantity: number) => {
-    setSelectedQuantity(quantity);
-  };
+  // const handleQuantityClick = (quantity: number) => {
+  //   setSelectedQuantity(quantity);
+  // };
 
   // Delete duration
   const handleDeleteDuration = (index: number) => {
@@ -52,18 +52,18 @@ export default function QuizConfiguration() {
   };
 
   // Delete quantity
-  const handleDeleteQuantity = (index: number) => {
-    if (quantities.length === 1) {
-      toast.error("At least one quantity option is required");
-      return;
-    }
-    const deletedQuantity = quantities[index];
-    setQuantities(quantities.filter((_, i) => i !== index));
-    if (selectedQuantity === deletedQuantity) {
-      setSelectedQuantity(null);
-    }
-    toast.success("Quantity option removed");
-  };
+  // const handleDeleteQuantity = (index: number) => {
+  //   if (quantities.length === 1) {
+  //     toast.error("At least one quantity option is required");
+  //     return;
+  //   }
+  //   const deletedQuantity = quantities[index];
+  //   setQuantities(quantities.filter((_, i) => i !== index));
+  //   if (selectedQuantity === deletedQuantity) {
+  //     setSelectedQuantity(null);
+  //   }
+  //   toast.success("Quantity option removed");
+  // };
 
   // Add custom duration
   const handleAddDuration = () => {
@@ -92,23 +92,24 @@ export default function QuizConfiguration() {
   };
 
   // Reset configuration
-  const handleReset = () => {
-    setSelectedDuration(null);
-    setSelectedQuantity(null);
-    setDurations([5, 5, 5, 5]);
-    setQuantities([20, 30, 40, 50]);
-    toast.info("Configuration reset");
-  };
+  // const handleReset = () => {
+  //   setSelectedDuration(null);
+  //   setSelectedQuantity(null);
+  //   setDurations([5, 5, 5, 5]);
+  //   setQuantities([20, 30, 40, 50]);
+  //   toast.info("Configuration reset");
+  // };
 
   // Save configuration
   const handleSave = () => {
-    if (selectedDuration === null || selectedQuantity === null) {
+    // if (selectedDuration === null || selectedQuantity === null) {
+    if (selectedDuration === null) {
       toast.error("Please select both duration and quantity");
       return;
     }
     console.log({
       duration: selectedDuration,
-      quantity: selectedQuantity,
+      // quantity: selectedQuantity,
     });
     toast.success("Configuration saved successfully");
   };
@@ -157,7 +158,7 @@ export default function QuizConfiguration() {
       </div>
 
       {/* Set Question Quantity Section */}
-      <div className="space-y-4">
+      {/* <div className="space-y-4">
         <div className="flex items-center gap-2">
           <List className="h-5 w-5 text-[#5CA1FE]" />
           <h2 className="text-xl font-semibold">Set Question Quantity</h2>
@@ -195,7 +196,7 @@ export default function QuizConfiguration() {
             Add Quantity
           </Button>
         </div>
-      </div>
+      </div> */}
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-center gap-4 pt-8 lg:pt-32">
