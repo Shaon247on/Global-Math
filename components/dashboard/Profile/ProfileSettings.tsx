@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -15,45 +15,40 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { toast } from "sonner";
+import {
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+  useChangePasswordMutation,
+} from "@/store/slice/apiSlice";
 
-// Profile Information Schema
+// Profile Schema with file validation
 const profileSchema = z.object({
-  fullName: z.string().min(2, {
-    message: "Full name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  role: z.string().min(2, {
-    message: "Role must be at least 2 characters.",
-  }),
-  phoneNumber: z.string().min(10, {
-    message: "Phone number must be at least 10 characters.",
-  }),
+  full_name: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  profile_pic: z
+    .instanceof(File)
+    .optional()
+    .refine(
+      (file) => !file || file.size <= 1024 * 1024,
+      "Image size must be less than 1MB"
+    )
+    .refine(
+      (file) => !file || file.type.startsWith("image/"),
+      "File must be an image"
+    ),
 });
 
-// Password Schema
 const passwordSchema = z
   .object({
-    currentPassword: z.string().min(8, {
-      message: "Current password is required.",
-    }),
+    currentPassword: z.string().min(1, "Current password is required"),
     newPassword: z
       .string()
-      .min(8, {
-        message: "Password must be at least 8 characters.",
-      })
-      .regex(/[0-9]/, {
-        message: "Password must include at least one number.",
-      })
-      .regex(/[^a-zA-Z0-9]/, {
-        message: "Password must include at least one symbol.",
-      }),
+      .min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
   })
-  .refine((data) => data.newPassword === data.confirmPassword, {
+  .refine((d) => d.newPassword === d.confirmPassword, {
     message: "Passwords don't match",
     path: ["confirmPassword"],
   });
@@ -61,20 +56,24 @@ const passwordSchema = z
 export default function ProfileSettings() {
   const [isProfileEditing, setIsProfileEditing] = useState(false);
   const [isPasswordEditing, setIsPasswordEditing] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Profile Form
+  // RTK Query
+  const { data: profile, isLoading } = useGetProfileQuery();
+  const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
+  const [changePassword, { isLoading: isChangingPassword }] =
+    useChangePasswordMutation();
+
+  // Forms
   const profileForm = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      fullName: "Alex David",
-      email: "Alex.David",
-      role: "Admin",
-      phoneNumber: "+987875432",
+    defaultValues: { 
+      full_name: "", 
+      email: "",
+      profile_pic: undefined 
     },
   });
 
-  // Password Form
   const passwordForm = useForm<z.infer<typeof passwordSchema>>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
@@ -84,52 +83,95 @@ export default function ProfileSettings() {
     },
   });
 
-  // Handle Profile Submit
-  const onProfileSubmit = (values: z.infer<typeof profileSchema>) => {
-    console.log("Profile Data:", values);
-    setIsProfileEditing(false);
-    toast.success("Profile Updated", {
-      description: "Your profile information has been saved successfully.",
-    });
-  };
+  // Sync profile data - only update form values
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset({
+        full_name: profile.full_name,
+        email: profile.email,
+        profile_pic: undefined
+      });
+    }
+  }, [profile, profileForm]);
 
-  // Handle Password Submit
-  const onPasswordSubmit = (values: z.infer<typeof passwordSchema>) => {
-    console.log("Password Data:", values);
-    setIsPasswordEditing(false);
-    passwordForm.reset();
-    toast.success("Password Updated", {
-      description: "Your password information has been saved successfully.",
-    });
-  };
+  // Compute preview URL - no state update in effect
+  const displayPreviewUrl = previewUrl || profile?.profile_pic || "https://github.com/shadcn.png";
 
-  // Handle Image Upload
+  // Handle image selection with preview
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result as string);
-        console.log("Selected Image:", file.name);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Set the file in the form
+    profileForm.setValue("profile_pic", file, { 
+      shouldValidate: true 
+    });
+
+    // Check validation manually to show toast
+    if (file.size > 1024 * 1024) {
+      toast.error("Image size must be less than 1MB");
+      e.target.value = "";
+      setPreviewUrl(null);
+      profileForm.setValue("profile_pic", undefined);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("File must be an image");
+      e.target.value = "";
+      setPreviewUrl(null);
+      profileForm.setValue("profile_pic", undefined);
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+      toast.success("Image selected – will be uploaded on save");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Profile Submit
+  const onProfileSubmit = async (values: z.infer<typeof profileSchema>) => {
+    try {
+      await updateProfile({
+        full_name: values.full_name,
+        email: values.email,
+        profile_pic: values.profile_pic,
+      }).unwrap();
+
+      toast.success("Profile updated successfully");
+      setIsProfileEditing(false);
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Failed to update profile");
     }
   };
 
-  // Handle Cancel Actions
-  const handleProfileCancel = () => {
-    profileForm.reset();
-    setIsProfileEditing(false);
+  // Password Submit
+  const onPasswordSubmit = async (values: z.infer<typeof passwordSchema>) => {
+    try {
+      await changePassword({
+        old_password: values.currentPassword,
+        new_password: values.newPassword,
+      }).unwrap();
+
+      toast.success("Password changed successfully");
+      setIsPasswordEditing(false);
+      passwordForm.reset();
+    } catch (err: any) {
+      toast.error(err?.data?.detail || "Failed to change password");
+    }
   };
 
-  const handlePasswordCancel = () => {
-    passwordForm.reset();
-    setIsPasswordEditing(false);
-  };
+  if (isLoading) {
+    return <div className="p-8 text-center">Loading profile...</div>;
+  }
 
   return (
-    <div className=" mx-auto p-6 space-y-6">
-      {/* Profile Information Section */}
+    <div className="mx-auto p-6 space-y-6">
+      {/* Profile Information */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -155,39 +197,53 @@ export default function ProfileSettings() {
             onSubmit={profileForm.handleSubmit(onProfileSubmit)}
             className="space-y-6"
           >
-            {/* Avatar Section */}
+            {/* Avatar with Preview */}
             <div className="flex flex-col items-center gap-3">
               <div className="relative">
-                <div className="relative w-40 h-40 rounded-full border-4 border-blue-500 overflow-hidden cursor-pointer">
+                <div className="w-40 h-40 rounded-full border-4 border-blue-500 overflow-hidden">
                   <Avatar className="w-full h-full">
                     <AvatarImage
-                      src={selectedImage || "https://github.com/shadcn.png"}
+                      src={displayPreviewUrl}
                       className="object-cover"
                     />
-                    <AvatarFallback>AD</AvatarFallback>
+                    <AvatarFallback>
+                      {profile?.full_name?.[0] || "A"}
+                    </AvatarFallback>
                   </Avatar>
                 </div>
 
                 {isProfileEditing && (
-                  <label
-                    htmlFor="avatar-upload"
-                    className="absolute bottom-0 right-0 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
-                  >
-                    <Pencil className="w-6 h-6 text-white" />
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageChange}
-                      disabled={!isProfileEditing}
-                    />
-                  </label>
+                  <FormField
+                    control={profileForm.control}
+                    name="profile_pic"
+                    render={({ field: { value, onChange, ...field } }) => (
+                      <FormItem>
+                        <FormLabel
+                          htmlFor="avatar-upload"
+                          className="absolute bottom-0 right-0 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer hover:bg-blue-600 transition-colors shadow-lg"
+                        >
+                          <Pencil className="w-6 h-6 text-white" />
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              handleImageChange(e);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
               </div>
-
               <span className="text-lg text-blue-500 font-semibold">
-                Choose Photo
+                Choose Photo (Max 1MB)
               </span>
             </div>
 
@@ -195,7 +251,7 @@ export default function ProfileSettings() {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={profileForm.control}
-                name="fullName"
+                name="full_name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Full Name</FormLabel>
@@ -214,35 +270,14 @@ export default function ProfileSettings() {
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input {...field} readOnly={!isProfileEditing} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={profileForm.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <FormControl>
-                      <Input {...field} readOnly={!isProfileEditing} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={profileForm.control}
-                name="phoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} readOnly={!isProfileEditing} />
+                      <Input
+                        {...field}
+                        readOnly={!isProfileEditing}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -250,19 +285,27 @@ export default function ProfileSettings() {
               />
             </div>
 
-            {/* Action Buttons */}
             {isProfileEditing && (
               <div className="flex justify-center gap-3">
                 <Button
-                  size={"lg"}
+                  size="lg"
                   type="button"
                   variant="outline"
-                  onClick={handleProfileCancel}
+                  onClick={() => {
+                    profileForm.reset({
+                      full_name: profile?.full_name || "",
+                      email: profile?.email || "",
+                      profile_pic: undefined,
+                    });
+                    setPreviewUrl(null);
+                    setIsProfileEditing(false);
+                  }}
+                  disabled={isUpdating}
                 >
                   Cancel
                 </Button>
-                <Button size={"lg"} type="submit">
-                  Save
+                <Button size="lg" type="submit" disabled={isUpdating}>
+                  {isUpdating ? "Saving..." : "Save"}
                 </Button>
               </div>
             )}
@@ -270,7 +313,7 @@ export default function ProfileSettings() {
         </Form>
       </div>
 
-      {/* Change Password Section */}
+      {/* Change Password */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -355,19 +398,22 @@ export default function ProfileSettings() {
               />
             </div>
 
-            {/* Action Buttons */}
             {isPasswordEditing && (
               <div className="flex justify-center gap-3">
                 <Button
-                  size={"lg"}
+                  size="lg"
                   type="button"
                   variant="outline"
-                  onClick={handlePasswordCancel}
+                  onClick={() => {
+                    passwordForm.reset();
+                    setIsPasswordEditing(false);
+                  }}
+                  disabled={isChangingPassword}
                 >
                   Cancel
                 </Button>
-                <Button size={"lg"} type="submit">
-                  Update
+                <Button size="lg" type="submit" disabled={isChangingPassword}>
+                  {isChangingPassword ? "Updating..." : "Update"}
                 </Button>
               </div>
             )}

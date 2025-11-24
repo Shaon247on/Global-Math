@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import ModuleHeaderActions from "./ModuleHeaderActions";
 import OptionalModuleDialog from "./OptionalModuleDialog";
@@ -6,64 +7,123 @@ import AddModuleDialog from "./AddModuleDialog";
 import ModuleTable from "./ModuleTable";
 import { useDeleteModuleMutation, useGetModulesQuery } from "@/store/slice/apiSlice";
 import { toast } from "sonner";
-
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function ModuleManagement() {
-  // const [modules, setModules] = useState<Module[]>(moduleData);
+  const [page, setPage] = useState(1);
   const [optionalDialogOpen, setOptionalDialogOpen] = useState(false);
-  const [open, setOpen] = useState<boolean>(false)
-  const [page,setPage] = useState<number>(1)
-  const {data: module, isLoading, isError} = useGetModulesQuery({page:page})
-  const [deleteModule, {isLoading: deleteLoading} ] = useDeleteModuleMutation()
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  const availableModules = module?.results.map((m) => m.module_name);
+  const {
+    data: modulesData,
+    isLoading,
+    isFetching,
+  } = useGetModulesQuery({ page });
 
-  const handleSetOptional = () => {
-    setOptionalDialogOpen(true);
-  };
+  const [deleteModule] = useDeleteModuleMutation();
 
-  const handleAddModule = () => {
-    console.log("Add new module");
-    setOpen(true)
-    // Add your logic here
-  };
+  const totalPages = modulesData?.count
+    ? Math.ceil(modulesData.count / 10)
+    : 1;
 
   const handleDeleteModule = async (moduleId: string) => {
-    const response = await deleteModule({id: moduleId}).unwrap()
-    if(response.msg){
-      toast.success( response.msg || "Module Deleted Successfully")
-    }else{
-      toast.error('Module delete failed.')
+    try {
+      await deleteModule({ id: moduleId }).unwrap();
+      toast.success("Module deleted successfully");
+    } catch {
+      toast.error("Failed to delete module");
     }
   };
 
-  if(isLoading) return <div>Loading...</div>
+  const renderPaginationItems = () => {
+    const items = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink onClick={() => setPage(i)} isActive={page === i}>
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+    } else {
+      if (page > 3) items.push(<PaginationEllipsis key="start" />);
+      for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
+        items.push(
+          <PaginationItem key={i}>
+            <PaginationLink onClick={() => setPage(i)} isActive={page === i}>
+              {i}
+            </PaginationLink>
+          </PaginationItem>
+        );
+      }
+      if (page < totalPages - 2) items.push(<PaginationEllipsis key="end" />);
+    }
+    return items;
+  };
+
+  if (isLoading) return <div className="p-8 text-center">Loading modules...</div>;
 
   return (
-    <div className="w-full min-h-[calc(100vh-100px)]">
-      <div>
-
+    <div className="w-full min-h-[calc(100vh-100px)] p-4">
+      <div className="space-y-6">
         <ModuleHeaderActions
-          onSetOptional={handleSetOptional}
-          onAddModule={handleAddModule}
+          onSetOptional={() => setOptionalDialogOpen(true)}
+          onAddModule={() => setAddDialogOpen(true)}
         />
 
         <ModuleTable
-          modules={module?.results || []}
+          modules={modulesData!}
           onDelete={handleDeleteModule}
+          isFetching={isFetching}
         />
+
+        {/* shadcn/ui Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-end float-end mt-8">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+
+                {renderPaginationItems()}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
 
         <OptionalModuleDialog
           open={optionalDialogOpen}
           onOpenChange={setOptionalDialogOpen}
-          availableModules={availableModules || []}
+          availableModules={modulesData?.results.map(m => m.module_name) || []}
         />
 
         <AddModuleDialog
-        onOpenChange={setOpen}
-        open={open}
+          open={addDialogOpen}
+          onOpenChange={setAddDialogOpen}
         />
-        
       </div>
     </div>
   );

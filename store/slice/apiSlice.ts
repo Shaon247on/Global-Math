@@ -1,73 +1,58 @@
+// src/store/slice/apiSlice.ts
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { setCookie } from "@/hooks/cookie";
 import { LoginFormValues, LoginResponse } from "@/types/auth.type";
-import { ModuleListResponse } from "@/types/module.type";
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import {
+  ModuleCreateRequest,
+  ModuleCreateResponse,
+  ModuleListResponse,
+} from "@/types/module.type";
 import { toast } from "sonner";
+import { DurationItem, DurationListResponse } from "@/types/quizDuration.type";
+import {
+  PasswordChangeRequest,
+  ProfileResponse,
+  UpdateProfileRequest,
+  UpdateProfileResponse,
+} from "@/types/profile.type";
+import { QuestionListResponse, QuestionRquestion } from "@/types/question.type";
+import { StudentListRequest, StudentListResponse } from "@/types/student.type";
 
-// interface ProfileResponse {
-//     success: boolean;
-// }
-
-// interface ProfileRequest {
-//     full_name: string;
-//     profile_pic: File; // Changed from FormData to File
-// }
-
-const BASE_URL = "http://10.10.13.22:8000"
+const BASE_URL = "http://10.10.13.96:8000";
 
 export const mainApi = createApi({
   reducerPath: "mainApi",
   baseQuery: fetchBaseQuery({
     baseUrl: BASE_URL,
-    prepareHeaders: (headers) => {
-
-        if (!headers.has("Content-Type")) {
+    prepareHeaders: (headers, { endpoint }) => {
+      // Don't set Content-Type for updateProfile - let browser set it for FormData
+      if (endpoint !== "updateProfile") {
         headers.set("Content-Type", "application/json");
       }
 
       if (typeof window !== "undefined") {
         const accessToken = document.cookie
           .split("; ")
-          .find((row) => row.startsWith("access_token"))
+          .find((row) => row.startsWith("access_token="))
           ?.split("=")[1];
 
         if (accessToken) {
           headers.set("Authorization", `Bearer ${accessToken}`);
         }
       }
+      return headers;
     },
   }),
+  tagTypes: ["Module", "Duration", "Profile", "Question", "Student"],
   endpoints: (builder) => ({
-    //     updateProfile: builder.mutation<ProfileResponse, ProfileRequest>(
-    //         {
-    //         query: (body) => {
-    //             const formData = new FormData();
-    //             formData.append("full_name", body.full_name);
-    //             formData.append("profile_pic", body.profile_pic);
+    // auth endpoint
 
-    //             return {
-    //                 url: "control/profile/",
-    //                 method: "PATCH", // Fixed typo: was "PETCH"
-    //                 headers: {
-    //                     'Content-Type': 'multipart/form-data;'
-    //                 },
-    //                 body: formData, // Pass formData directly, not wrapped in object
-    //                 // Don't set Content-Type header - browser will set it automatically with boundary
-    //             };
-    //         }
-    //     }
-    // ),
-
-    // authentication
-    
     login: builder.mutation<LoginResponse, LoginFormValues>({
-      query: (body) => {
-        return {
-          url: "/auth/login/",
-          method: "POST",
-          body,
-        };
-      },
+      query: (body) => ({
+        url: "/auth/login/",
+        method: "POST",
+        body,
+      }),
       async onQueryStarted(_, { queryFulfilled }) {
         try {
           const { data } = await queryFulfilled;
@@ -75,42 +60,174 @@ export const mainApi = createApi({
             setCookie("access_token", data.access_token);
             setCookie("refresh_token", data.refresh_token);
             toast.success("Login Success");
-          } else {
-            toast.error(data.error || "Something went wrong.");
           }
-        } catch (error) {
-          const err = error as Error;
-          toast.error(err.message || "Something went wrong in function");
+        } catch {
+          toast.error("Login failed");
         }
       },
     }),
-    getModules: builder.query<ModuleListResponse, {page?: number;}>({
-        query: ({page = 1}) => {
-            const params = new URLSearchParams({
-                page: String(page),
-            })
-            return{
-                url: `/admin-api/modules/?${params}`,
-                method: "GET",
-            }
-        }
+
+    // Module endpoints
+
+    getModules: builder.query<ModuleListResponse, { page?: number }>({
+      query: ({ page = 1 }) => ({
+        url: "/admin-api/modules/",
+        method: "GET",
+        params: { page },
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              { type: "Module", id: "LIST" },
+              ...result.results.map(({ id }) => ({
+                type: "Module" as const,
+                id,
+              })),
+            ]
+          : [{ type: "Module", id: "LIST" }],
     }),
-    deleteModule: builder.mutation<{msg: string}, {id: string}>({
-        query: (id) =>({
-            url: `/admin-api/modules/${id}/delete/`,
-            method: "DELETE",
-            credentials: "include"
-        })
+
+    createModule: builder.mutation<ModuleCreateResponse, ModuleCreateRequest>({
+      query: (body) => ({
+        url: "/admin-api/modules/",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Module", id: "LIST" }],
+    }),
+
+    deleteModule: builder.mutation<{ msg: string }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/admin-api/modules/${id}/delete/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: "Module", id },
+        { type: "Module", id: "LIST" },
+      ],
+    }),
+
+    // duration endpoints
+
+    getQuizDurations: builder.query<DurationListResponse, void>({
+      query: () => "/admin-api/quiz-duration/",
+      providesTags: ["Duration"],
+    }),
+
+    createQuizDuration: builder.mutation<DurationItem, { duration: number }>({
+      query: (body) => ({
+        url: "/admin-api/quiz-duration/",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Duration"],
+    }),
+
+    UpdateQuizDuration: builder.mutation<
+      DurationItem,
+      { id: string; duration: number }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/admin-api/quiz-duration/${id}/`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Duration"],
+    }),
+
+    deleteQuizDuration: builder.mutation<{ msg: string }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/admin-api/quiz-duration/${id}/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Duration"],
+    }),
+
+    // Profile endpoints
+
+    getProfile: builder.query<ProfileResponse, void>({
+      query: () => "/admin-api/profile-information/",
+      providesTags: ["Profile"],
+    }),
+
+    updateProfile: builder.mutation<
+      UpdateProfileResponse,
+      UpdateProfileRequest
+    >({
+      query: (body) => {
+        const formData = new FormData();
+
+        if (body.full_name !== undefined) {
+          formData.append("full_name", body.full_name);
+        }
+        if (body.email !== undefined) {
+          formData.append("email", body.email);
+        }
+        if (body.profile_pic !== undefined) {
+          formData.append("profile_pic", body.profile_pic);
+        }
+
+        return {
+          url: "/admin-api/profile-information/",
+          method: "PATCH",
+          body: formData,
+          credentials: "include",
+        };
+      },
+      invalidatesTags: ["Profile"],
+    }),
+
+    changePassword: builder.mutation<{ detail: string }, PasswordChangeRequest>(
+      {
+        query: (body) => ({
+          url: "/admin-api/update-password/",
+          method: "POST",
+          body,
+          credentials: "include",
+        }),
+      }
+    ),
+
+    // question endpoints
+
+    getQuestion: builder.query<QuestionListResponse, QuestionRquestion>({
+      query: ({ module, page = 1 }) => ({
+        url: "/admin-api/questions/",
+        method: "GET",
+        params: { module, page },
+      }),
+      providesTags: ["Question"],
+    }),
+    // student endpoints
+    getStudents: builder.query<StudentListResponse, StudentListRequest>({
+      query: ({ page = 1, order_by, duration, search }) => ({
+        url: "/admin-api/student-list/",
+        method: "GET",
+        params: { page, order_by, duration, search },
+      }),
+      providesTags: ["Student"],
     })
   }),
 });
 
 export const {
-  // useUpdateProfileMutation,
-
-  // authentication
+  // auth Hooks
   useLoginMutation,
-  // Modules
+  // Module Hooks
   useGetModulesQuery,
-  useDeleteModuleMutation
+  useCreateModuleMutation,
+  useDeleteModuleMutation,
+  // Quiz Duration Hooks
+  useGetQuizDurationsQuery,
+  useCreateQuizDurationMutation,
+  useUpdateQuizDurationMutation,
+  useDeleteQuizDurationMutation,
+  // Profile Hooks
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+  useChangePasswordMutation,
+  // Question Hooks
+  useGetQuestionQuery,
+  // Student Hooks
+  useGetStudentsQuery,
 } = mainApi;

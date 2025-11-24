@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { moduleData } from "@/data/moduleData";
+import { useCreateModuleMutation } from "@/store/slice/apiSlice";
+import { ModuleCreateResponse } from "@/types/module.type";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -27,7 +29,9 @@ interface AddModuleDialogProps {
 }
 function AddModuleDialog({ onOpenChange, open, id }: AddModuleDialogProps) {
   const moduleDetails = moduleData.find((item) => item.id === id);
-  console.log("getting the id:", moduleDetails);
+
+  const [createModule, { isLoading }] = useCreateModuleMutation();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -35,20 +39,29 @@ function AddModuleDialog({ onOpenChange, open, id }: AddModuleDialogProps) {
     },
   });
 
+  console.log("The id:", id);
+
   useEffect(() => {
     if (moduleDetails) {
       form.setValue("name", moduleDetails.moduleName);
     }
   }, [moduleDetails, form]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    if (id !== "") {
+    if (id !== "" && id !== undefined) {
       toast.success("Module edited Successfully");
       onOpenChange(false);
     } else {
-      toast.success("Module Created");
-      onOpenChange(false);
+      const response = await createModule({
+        module_name: values.name,
+      }).unwrap();
+      if (response.id) {
+        toast.success("Module Created");
+        onOpenChange(false);
+      } else {
+        toast.error(response.detail || "Failed to create module");
+      }
     }
   }
 

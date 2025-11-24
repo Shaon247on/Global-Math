@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import {
   Table,
@@ -9,15 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  Eye,
-  Trash2,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Pencil,
-} from "lucide-react";
+import { Eye, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,341 +21,229 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 import Link from "next/link";
-import type { Module } from "@/data/moduleData";
 import AddModuleDialog from "./AddModuleDialog";
-import { ModuleItem } from "@/types/module.type";
+import { Module, ModuleListResponse } from "@/types/module.type";
 
 interface ModuleTableProps {
-  modules: ModuleItem[];
+  modules: ModuleListResponse;
   onDelete: (moduleId: string) => void;
+  isFetching: boolean;
+  currentPage?: number; // ← optional + default below
 }
 
-const ITEMS_PER_PAGE = 10;
-
-export default function ModuleTable({ modules, onDelete }: ModuleTableProps) {
+export default function ModuleTable({
+  modules,
+  onDelete,
+  isFetching,
+  currentPage = 1, // ← This fixes NaN forever!
+}: ModuleTableProps) {
   const [moduleToDelete, setModuleToDelete] = useState<Module | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [editedId, setEditedId] = useState<string>("");
-  const [open, setOpen] = useState<boolean>(false);
-  const totalPages = Math.ceil(modules.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentModules = modules.slice(startIndex, endIndex);
+  const [open, setOpen] = useState(false);
 
   const handleDelete = () => {
     if (moduleToDelete) {
       onDelete(moduleToDelete.id);
-      toast.success("Module deleted successfully");
       setModuleToDelete(null);
     }
   };
 
-  const goToFirstPage = () => setCurrentPage(1);
-  const goToLastPage = () => setCurrentPage(totalPages);
-  const goToPreviousPage = () =>
-    setCurrentPage((prev) => Math.max(1, prev - 1));
-  const goToNextPage = () =>
-    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
-  const goToPage = (page: number) => setCurrentPage(page);
-
-  const getPageNumbers = () => {
-    const pages: (number | string)[] = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i);
-        pages.push("...");
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push("...");
-        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1);
-        pages.push("...");
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-        pages.push("...");
-        pages.push(totalPages);
-      }
-    }
-
-    return pages;
+  const getSerialNumber = (index: number) => {
+    return (currentPage - 1) * 10 + index + 1;
   };
 
   return (
     <>
+      <AddModuleDialog open={open} onOpenChange={setOpen} id={editedId} />
+
       <div className="w-full overflow-hidden border rounded-lg bg-white shadow-sm">
         {/* Desktop Table */}
-        <AddModuleDialog open={open} onOpenChange={setOpen} id={editedId} />
         <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">
                 <TableHead className="font-semibold">Serial</TableHead>
                 <TableHead className="font-semibold">Module Name</TableHead>
-                <TableHead className="font-semibold">
-                  Number of Question
-                </TableHead>
-                <TableHead className="font-semibold">Top Score</TableHead>
-                <TableHead className="font-semibold">Quiz Attended</TableHead>
-                <TableHead className="font-semibold">View</TableHead>
-                <TableHead className="font-semibold">Edit</TableHead>
-                <TableHead className="font-semibold">Delete</TableHead>
+                <TableHead className="font-semibold text-center">Questions</TableHead>
+                <TableHead className="font-semibold text-center">Top Score</TableHead>
+                <TableHead className="font-semibold text-center">Attended</TableHead>
+                <TableHead className="font-semibold text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentModules.map((module, index) => (
-                <TableRow key={module.id} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">{index +1}</TableCell>
-                  <TableCell className="font-medium">
-                    {module.module_name}
-                  </TableCell>
-                  <TableCell className="lg:pl-12">
-                    {module.numberOfQuestions || "--"}
-                  </TableCell>
-                  <TableCell className="lg:pl-8">{module.topScore || "--"}</TableCell>
-                  <TableCell className="lg:pl-8">
-                    {module.quizAttended || "--"}
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/dashboard/manage-module/${module.id}`}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                      >
-                        <Eye className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      onClick={() => {
-                        setEditedId(module.id);
-                        setOpen(true);
-                      }}
-                      variant={"ghost"}
-                      size={"icon"}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                      <Pencil />
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setModuleToDelete(module)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </Button>
+              {isFetching ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-16 text-gray-500">
+                    Loading modules...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : modules.results.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-16 text-gray-500">
+                    No modules found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                modules.results.map((module, index) => (
+                  <TableRow key={module.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium">
+                      {getSerialNumber(index)}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {module.module_name}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {module.numberOfQuestions ?? "--"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {module.topScore ?? "--"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {module.quizAttended ?? "--"}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2">
+                        <Link href={`/dashboard/manage-module/${module.id}`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </Button>
+                        </Link>
+
+                        <Button
+                          onClick={() => {
+                            setEditedId(module.id);
+                            setOpen(true);
+                          }}
+                          variant="ghost"
+                          size="icon"
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Pencil className="h-5 w-5" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setModuleToDelete(module)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
 
         {/* Mobile Cards */}
-        <div className="md:hidden space-y-3 p-4">
-          {currentModules.map((module) => (
-            <div
-              key={module.id}
-              className="border rounded-lg p-4 bg-white shadow-sm"
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Serial: {module.serial}
-                  </p>
-                  <h3 className="font-semibold text-lg">{module.moduleName}</h3>
+        <div className="md:hidden space-y-4 p-4">
+          {isFetching ? (
+            <div className="text-center py-16 text-gray-500">Loading...</div>
+          ) : modules.results.length === 0 ? (
+            <div className="text-center py-16 text-gray-500">No modules found.</div>
+          ) : (
+            modules.results.map((module, index) => (
+              <div
+                key={module.id}
+                className="border rounded-lg p-5 bg-white shadow-sm"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-sm text-gray-500">
+                      #{getSerialNumber(index)}
+                    </p>
+                    <h3 className="font-bold text-lg mt-1">{module.module_name}</h3>
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
-                <div>
-                  <span className="text-gray-500">Questions:</span>
-                  <span className="ml-2 font-medium">
-                    {module.numberOfQuestions}
-                  </span>
+                <div className="grid grid-cols-2 gap-3 text-sm mb-5">
+                  <div>
+                    <span className="text-gray-500">Questions:</span>
+                    <span className="ml-2 font-medium">
+                      {module.numberOfQuestions ?? "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Top Score:</span>
+                    <span className="ml-2 font-medium">
+                      {module.topScore ?? "--"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Attended:</span>
+                    <span className="ml-2 font-medium">
+                      {module.quizAttended ?? "--"}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-500">Top Score:</span>
-                  <span className="ml-2 font-medium">
-                    {module.topScore}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Attended:</span>
-                  <span className="ml-2 font-medium">
-                    {module.quizAttended}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Average:</span>
-                  <span className="ml-2 font-medium">
-                    {module.average}
-                  </span>
-                </div>
-              </div>
 
-              <div className="flex gap-2">
-                <Link href={`/dashboard/manage-module/${module.id}`}>
+                <div className="flex gap-2">
+                  <Link href={`/dashboard/manage-module/${module.id}`} className="flex-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-green-600 border-green-600 hover:bg-green-50"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </Link>
+
+                  <Button
+                    onClick={() => {
+                      setEditedId(module.id);
+                      setOpen(true);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-blue-600 border-blue-600 hover:bg-blue-50"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 text-green-600 border-green-600 hover:bg-green-50"
+                    onClick={() => setModuleToDelete(module)}
+                    className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
                   >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
                   </Button>
-                </Link>
-                <Button
-                  onClick={() => {
-                    setEditedId(module.id);
-                    setOpen(true);
-                  }}
-                  variant={"outline"}
-                  size={"sm"}
-                  className="flex-1 text-blue-600 border-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                >
-                  <Pencil className="h-4 w-4 mr-1"/>
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setModuleToDelete(module)}
-                  className="flex-1 text-red-600 border-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
-
-        {/* Pagination */}
-        {modules.length > 0 && (
-          <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-4 px-4 py-4 border-t bg-gray-50">
-            <div className="text-sm text-gray-500">
-              Showing {startIndex + 1} to {Math.min(endIndex, modules.length)}{" "}
-              of {modules.length} modules
-            </div>
-
-            <nav className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={goToFirstPage}
-                disabled={currentPage === 1}
-                className="h-8 w-8"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={goToPreviousPage}
-                disabled={currentPage === 1}
-                className="h-8 w-8"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-
-              <div className="hidden sm:flex items-center gap-1">
-                {getPageNumbers().map((page, idx) =>
-                  page === "..." ? (
-                    <span
-                      key={`ellipsis-${idx}`}
-                      className="px-2 text-gray-400"
-                    >
-                      ...
-                    </span>
-                  ) : (
-                    <Button
-                      key={`page-${page}`}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToPage(page as number)}
-                      className={`h-8 min-w-8 px-3 ${
-                        currentPage === page
-                          ? "bg-[#5CA1FE] text-white hover:bg-[#5CA1FE]/90 border-[#5CA1FE]"
-                          : ""
-                      }`}
-                    >
-                      {page}
-                    </Button>
-                  )
-                )}
-              </div>
-
-              <div className="sm:hidden">
-                <span className="text-sm text-gray-600 px-2">
-                  {currentPage} / {totalPages}
-                </span>
-              </div>
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={goToNextPage}
-                disabled={currentPage === totalPages}
-                className="h-8 w-8"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={goToLastPage}
-                disabled={currentPage === totalPages}
-                className="h-8 w-8"
-              >
-                <ChevronsRight className="h-4 w-4" />
-              </Button>
-            </nav>
-          </div>
-        )}
       </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!moduleToDelete}
-        onOpenChange={() => setModuleToDelete(null)}
-      >
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!moduleToDelete} onOpenChange={() => setModuleToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Module?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              module{" "}
-              <span className="font-semibold">
-                {moduleToDelete?.moduleName}
-              </span>{" "}
-              and all associated data.
+              This action cannot be undone. This will permanently delete the module
+              <span className="font-bold text-red-600"> "{moduleToDelete?.module_name}"</span>
+              and all its questions.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-3 sm:gap-2">
-            <AlertDialogCancel className="mt-0 flex-1 sm:flex-none">
-              Cancel
-            </AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-3">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 text-white hover:bg-red-700 flex-1 sm:flex-none"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
             >
-              Delete
+              Delete Module
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
