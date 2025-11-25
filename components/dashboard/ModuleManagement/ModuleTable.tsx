@@ -65,22 +65,36 @@ export default function ModuleTable({
               <TableRow className="bg-gray-50">
                 <TableHead className="font-semibold">Serial</TableHead>
                 <TableHead className="font-semibold">Module Name</TableHead>
-                <TableHead className="font-semibold text-center">Questions</TableHead>
-                <TableHead className="font-semibold text-center">Top Score</TableHead>
-                <TableHead className="font-semibold text-center">Attended</TableHead>
-                <TableHead className="font-semibold text-center">Actions</TableHead>
+                <TableHead className="font-semibold text-center">
+                  Questions
+                </TableHead>
+                <TableHead className="font-semibold text-center">
+                  Top Score
+                </TableHead>
+                <TableHead className="font-semibold text-center">
+                  Attended
+                </TableHead>
+                <TableHead className="font-semibold text-center">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isFetching ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-16 text-gray-500">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-16 text-gray-500"
+                  >
                     Loading modules...
                   </TableCell>
                 </TableRow>
               ) : modules.results.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-16 text-gray-500">
+                  <TableCell
+                    colSpan={6}
+                    className="text-center py-16 text-gray-500"
+                  >
                     No modules found.
                   </TableCell>
                 </TableRow>
@@ -94,13 +108,13 @@ export default function ModuleTable({
                       {module.module_name}
                     </TableCell>
                     <TableCell className="text-center">
-                      {module.numberOfQuestions ?? "--"}
+                      {module.questions_count ?? 0}
                     </TableCell>
                     <TableCell className="text-center">
-                      {module.topScore ?? "--"}
+                      {module.top_score ?? 0}
                     </TableCell>
                     <TableCell className="text-center">
-                      {module.quizAttended ?? "--"}
+                      {module.attended ?? 0}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center gap-2">
@@ -148,7 +162,9 @@ export default function ModuleTable({
           {isFetching ? (
             <div className="text-center py-16 text-gray-500">Loading...</div>
           ) : modules.results.length === 0 ? (
-            <div className="text-center py-16 text-gray-500">No modules found.</div>
+            <div className="text-center py-16 text-gray-500">
+              No modules found.
+            </div>
           ) : (
             modules.results.map((module, index) => (
               <div
@@ -160,7 +176,9 @@ export default function ModuleTable({
                     <p className="text-sm text-gray-500">
                       #{getSerialNumber(index)}
                     </p>
-                    <h3 className="font-bold text-lg mt-1">{module.module_name}</h3>
+                    <h3 className="font-bold text-lg mt-1">
+                      {module.module_name}
+                    </h3>
                   </div>
                 </div>
 
@@ -168,25 +186,28 @@ export default function ModuleTable({
                   <div>
                     <span className="text-gray-500">Questions:</span>
                     <span className="ml-2 font-medium">
-                      {module.numberOfQuestions ?? "--"}
+                      {module.questions_count ?? 0}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-500">Top Score:</span>
                     <span className="ml-2 font-medium">
-                      {module.topScore ?? "--"}
+                      {module.top_score ?? 0}
                     </span>
                   </div>
                   <div>
                     <span className="text-gray-500">Attended:</span>
                     <span className="ml-2 font-medium">
-                      {module.quizAttended ?? "--"}
+                      {module.attended ?? 0}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Link href={`/dashboard/manage-module/${module.id}`} className="flex-1">
+                  <Link
+                    href={`/dashboard/manage-module/${module.id}`}
+                    className="flex-1"
+                  >
                     <Button
                       variant="outline"
                       size="sm"
@@ -227,18 +248,27 @@ export default function ModuleTable({
       </div>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!moduleToDelete} onOpenChange={() => setModuleToDelete(null)}>
+      <AlertDialog
+        open={!!moduleToDelete}
+        onOpenChange={() => setModuleToDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Module?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the module
-              <span className="font-bold text-red-600"> "{moduleToDelete?.module_name}"</span>
+              This action cannot be undone. This will permanently delete the
+              module
+              <span className="font-bold text-red-600">
+                {" "}
+                &#34;{moduleToDelete?.module_name}&#34;
+              </span>
               and all its questions.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-3">
-            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               className="w-full sm:w-auto bg-red-600 hover:bg-red-700"

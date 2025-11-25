@@ -5,7 +5,10 @@ import ModuleHeaderActions from "./ModuleHeaderActions";
 import OptionalModuleDialog from "./OptionalModuleDialog";
 import AddModuleDialog from "./AddModuleDialog";
 import ModuleTable from "./ModuleTable";
-import { useDeleteModuleMutation, useGetModulesQuery } from "@/store/slice/apiSlice";
+import {
+  useDeleteModuleMutation,
+  useGetModulesQuery,
+} from "@/store/slice/apiSlice";
 import { toast } from "sonner";
 import {
   Pagination,
@@ -30,9 +33,7 @@ export default function ModuleManagement() {
 
   const [deleteModule] = useDeleteModuleMutation();
 
-  const totalPages = modulesData?.count
-    ? Math.ceil(modulesData.count / 10)
-    : 1;
+  const totalPages = modulesData?.count ? Math.ceil(modulesData.count / 10) : 1;
 
   const handleDeleteModule = async (moduleId: string) => {
     try {
@@ -59,7 +60,11 @@ export default function ModuleManagement() {
       }
     } else {
       if (page > 3) items.push(<PaginationEllipsis key="start" />);
-      for (let i = Math.max(1, page - 2); i <= Math.min(totalPages, page + 2); i++) {
+      for (
+        let i = Math.max(1, page - 2);
+        i <= Math.min(totalPages, page + 2);
+        i++
+      ) {
         items.push(
           <PaginationItem key={i}>
             <PaginationLink onClick={() => setPage(i)} isActive={page === i}>
@@ -73,7 +78,8 @@ export default function ModuleManagement() {
     return items;
   };
 
-  if (isLoading) return <div className="p-8 text-center">Loading modules...</div>;
+  if (isLoading)
+    return <div className="p-8 text-center">Loading modules...</div>;
 
   return (
     <div className="w-full min-h-[calc(100vh-100px)] p-4">
@@ -87,6 +93,7 @@ export default function ModuleManagement() {
           modules={modulesData!}
           onDelete={handleDeleteModule}
           isFetching={isFetching}
+          currentPage={page}
         />
 
         {/* shadcn/ui Pagination */}
@@ -97,7 +104,11 @@ export default function ModuleManagement() {
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={() => setPage(Math.max(1, page - 1))}
-                    className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={
+                      page === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
                   />
                 </PaginationItem>
 
@@ -106,7 +117,11 @@ export default function ModuleManagement() {
                 <PaginationItem>
                   <PaginationNext
                     onClick={() => setPage(Math.min(totalPages, page + 1))}
-                    className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={
+                      page === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -117,13 +132,15 @@ export default function ModuleManagement() {
         <OptionalModuleDialog
           open={optionalDialogOpen}
           onOpenChange={setOptionalDialogOpen}
-          availableModules={modulesData?.results.map(m => m.module_name) || []}
+          availableModules={
+            modulesData?.results.map((m) => ({
+              id: m.id,
+              name: m.module_name,
+            })) || []
+          }
         />
 
-        <AddModuleDialog
-          open={addDialogOpen}
-          onOpenChange={setAddDialogOpen}
-        />
+        <AddModuleDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
       </div>
     </div>
   );

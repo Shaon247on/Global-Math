@@ -5,11 +5,15 @@ import { Button } from "../ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { removeCookie } from "@/hooks/cookie";
 
 const ProfileDropdown = () => {
   const pathname = usePathname();
   const isProfilePage = pathname === "/dashboard/settings";
-
+const handleLogout = ()=>{
+  removeCookie("access_token");
+  removeCookie("refresh_token");
+}
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -38,7 +42,7 @@ const ProfileDropdown = () => {
           </Link>
         </DropdownMenuItem>
         <Link href={"/"}>
-          <DropdownMenuItem onClick={() => console.log('Logout')} className="cursor-pointer">
+          <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
             <span>Logout</span>
           </DropdownMenuItem>

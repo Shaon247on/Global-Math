@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,55 +10,184 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useUploadCsvQuestionsMutation } from "@/store/slice/apiSlice";
+import { X } from "lucide-react";
 
 interface UploadCsvDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
+  moduleId: string;
 }
 
-function UploadCsvDialog({ open, setOpen }: UploadCsvDialogProps) {
+export default function UploadCsvDialog({
+  open,
+  setOpen,
+  moduleId,
+}: UploadCsvDialogProps) {
+  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [uploadCsv, { isLoading }] = useUploadCsvQuestionsMutation();
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type === "text/csv") {
+      setSelectedFile(file);
+    } else {
+      toast.error("Please upload a valid CSV file");
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type === "text/csv") {
+      setSelectedFile(file);
+    } else {
+      toast.error("Please select a valid CSV file");
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Please select a CSV file");
+      return;
+    }
+
+    try {
+      const response = await uploadCsv({
+        moduleId,
+        file: selectedFile,
+      }).unwrap();
+      if (response.message) {
+        toast.success("CSV uploaded successfully!");
+        setOpen(false);
+        setSelectedFile(null);
+      }else{
+        toast.error(response.error || "Failed to upload CSV");
+      }
+    } catch (error) {
+      const err = error as { data?: { message?: string, error?: string } };
+      toast.error(err?.data?.error|| "Failed to upload CSV");
+    }
+  };
+
+  const handleCancel = () => {
+    setSelectedFile(null);
+    setOpen(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogHeader></DialogHeader>
       <DialogContent className="sm:max-w-4xl">
-        <DialogTitle className="text-center text-2xl font-medium">
-          Upload your file here
-        </DialogTitle>
-        <div className="max-w-2xl mx-auto border-2 border-dashed border-black rounded-2xl md:px-28 md:py-8 mt-4">
-          <div className="flex items-center flex-col justify-center md:mb-10">
+        <DialogHeader>
+          <DialogTitle className="text-center text-2xl font-medium">
+            Upload your CSV file
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="mt-6">
+          <div
+            className={`relative border-2 border-dashed rounded-2xl p-8 md:p-12 text-center transition-all
+    ${dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"}
+    ${selectedFile ? "border-green-500 bg-green-50" : ""}
+  `}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            {/* Hidden file input — only on the upload area, NOT over Remove button */}
+            {!selectedFile && (
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+            )}
+
+            {/* Upload Icon */}
             <svg
               width="101"
               height="74"
               viewBox="0 0 101 74"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
+              className="mx-auto mb-6"
             >
-              <path
-                d="M45.8333 73.3333H25.2083C18.2569 73.3333 12.3185 70.9271 7.39292 66.1146C2.46736 61.3021 0.00305556 55.4201 0 48.4687C0 42.5104 1.79514 37.2014 5.38542 32.5417C8.97569 27.8819 13.6736 24.9028 19.4792 23.6042C21.3889 16.5764 25.2083 10.8854 30.9375 6.53125C36.6667 2.17708 43.1597 0 50.4167 0C59.3542 0 66.9365 3.11361 73.1637 9.34083C79.391 15.5681 82.5031 23.1489 82.5 32.0833C87.7708 32.6944 92.1449 34.9678 95.6221 38.9033C99.0993 42.8389 100.836 47.4406 100.833 52.7083C100.833 58.4375 98.8289 63.308 94.82 67.32C90.8111 71.3319 85.9406 73.3364 80.2083 73.3333H55V40.5625L62.3333 47.6667L68.75 41.25L50.4167 22.9167L32.0833 41.25L38.5 47.6667L45.8333 40.5625V73.3333Z"
-                fill="#5CA1FE"
-              />
+              {/* ... your SVG path */}
             </svg>
+
+            {selectedFile ? (
+              <div className="space-y-3">
+                <p className="text-lg font-medium text-green-600">
+                  {selectedFile.name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {(selectedFile.size / 1024).toFixed(2)} KB
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation(); // ← Critical!
+                    setSelectedFile(null);
+                  }}
+                  className="text-red-600 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium">
+                  Drag and drop or{" "}
+                  <span className="text-blue-600 underline">browse</span> your
+                  CSV file
+                </h3>
+                <p className="text-sm text-gray-500 mt-2">
+                  Only .csv files are supported
+                </p>
+              </>
+            )}
           </div>
-          <h3>Drag and drop or browse your CSV File</h3>
         </div>
-        <DialogFooter>
-          <div className="flex items-center justify-center gap-4 w-full mt-7">
-            <Button variant={"outline"} size={"lg"} className="px-10" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              size={"lg"} className="px-10" onClick={() => {
-                toast.success("CVS file uploaded successfully.");
-                setOpen(false);
-              }}
-            >
-              Upload
-            </Button>
-          </div>
+
+        <DialogFooter className="flex-col sm:flex-row gap-3 mt-6">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleCancel}
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpload}
+            size="lg"
+            disabled={!selectedFile || isLoading}
+            className="w-full sm:w-auto bg-[#5CA1FE] hover:bg-[#5CA1FE]/90"
+          >
+            {isLoading ? "Uploading..." : "Upload CSV"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-export default UploadCsvDialog;

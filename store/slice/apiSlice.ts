@@ -6,6 +6,7 @@ import {
   ModuleCreateRequest,
   ModuleCreateResponse,
   ModuleListResponse,
+  ModuleQuizStatsResponse,
 } from "@/types/module.type";
 import { toast } from "sonner";
 import { DurationItem, DurationListResponse } from "@/types/quizDuration.type";
@@ -15,8 +16,24 @@ import {
   UpdateProfileRequest,
   UpdateProfileResponse,
 } from "@/types/profile.type";
-import { QuestionListResponse, QuestionRquestion } from "@/types/question.type";
-import { StudentListRequest, StudentListResponse } from "@/types/student.type";
+import {
+  CreateQuestionRequest,
+  QuestionItem,
+  QuestionListResponse,
+} from "@/types/question.type";
+import {
+  StudentDetailsResponse,
+  StudentListRequest,
+  StudentListResponse,
+} from "@/types/student.type";
+import { DashboardStatsResponse } from "@/types/dashboard.type";
+import {
+  OptionModule,
+  OptionModuleCreateRequest,
+  OptionModuleResponse,
+} from "@/types/optionalModule.type";
+import { SynopticModuleResponse } from "@/types/synoptic.type";
+import page from "@/app/dashboard/page";
 
 const BASE_URL = "http://10.10.13.96:8000";
 
@@ -43,7 +60,16 @@ export const mainApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["Module", "Duration", "Profile", "Question", "Student"],
+  tagTypes: [
+    "Module",
+    "OptionalPair",
+    "Duration",
+    "Profile",
+    "Question",
+    "Student",
+    "StudentDetail",
+    "Dashboard",
+  ],
   endpoints: (builder) => ({
     // auth endpoint
 
@@ -75,16 +101,11 @@ export const mainApi = createApi({
         method: "GET",
         params: { page },
       }),
-      providesTags: (result) =>
-        result
-          ? [
-              { type: "Module", id: "LIST" },
-              ...result.results.map(({ id }) => ({
-                type: "Module" as const,
-                id,
-              })),
-            ]
-          : [{ type: "Module", id: "LIST" }],
+      providesTags: ["Module"],
+    }),
+
+    getModuleById: builder.query<ModuleQuizStatsResponse, { id: string }>({
+      query: ({ id }) => `/admin-api/modules-detail/${id}/`,
     }),
 
     createModule: builder.mutation<ModuleCreateResponse, ModuleCreateRequest>({
@@ -93,7 +114,20 @@ export const mainApi = createApi({
         method: "POST",
         body,
       }),
-      invalidatesTags: [{ type: "Module", id: "LIST" }],
+      invalidatesTags: ["Module"],
+    }),
+
+    updateModule: builder.mutation<
+      ModuleCreateResponse,
+      ModuleCreateResponse
+    >({
+      query: (body) => ({
+        url: `/admin-api/modules-update/${body.id}/`,
+        method: "PATCH",
+        body,
+        credentials: "include",
+      }),
+      invalidatesTags: ["Module"],
     }),
 
     deleteModule: builder.mutation<{ msg: string }, { id: string }>({
@@ -105,6 +139,33 @@ export const mainApi = createApi({
         { type: "Module", id },
         { type: "Module", id: "LIST" },
       ],
+    }),
+
+    // optional module endpoints
+
+    getOptionalPairs: builder.query<OptionModuleResponse, void>({
+      query: () => "/admin-api/optional-module-pair/",
+      providesTags: ["OptionalPair"],
+    }),
+
+    createOptionalPair: builder.mutation<
+      OptionModule,
+      OptionModuleCreateRequest
+    >({
+      query: (body) => ({
+        url: "/admin-api/optional-module-pair/",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["OptionalPair"],
+    }),
+
+    deleteOptionalPair: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin-api/optional-module-pair/${id}/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["OptionalPair"],
     }),
 
     // duration endpoints
@@ -188,17 +249,8 @@ export const mainApi = createApi({
       }
     ),
 
-    // question endpoints
-
-    getQuestion: builder.query<QuestionListResponse, QuestionRquestion>({
-      query: ({ module, page = 1 }) => ({
-        url: "/admin-api/questions/",
-        method: "GET",
-        params: { module, page },
-      }),
-      providesTags: ["Question"],
-    }),
     // student endpoints
+
     getStudents: builder.query<StudentListResponse, StudentListRequest>({
       query: ({ page = 1, order_by, duration, search }) => ({
         url: "/admin-api/student-list/",
@@ -206,6 +258,137 @@ export const mainApi = createApi({
         params: { page, order_by, duration, search },
       }),
       providesTags: ["Student"],
+    }),
+
+    getStudentDetail: builder.query<
+      StudentDetailsResponse,
+      { user_id: string }
+    >({
+      query: ({ user_id }) => `/admin-api/student-detail/?user_id=${user_id}`,
+      providesTags: ["StudentDetail"],
+    }),
+
+    // Dashboard endpoints
+
+    getDashboardStats: builder.query<
+      DashboardStatsResponse,
+      { period: "day" | "month" | "year" }
+    >({
+      query: ({ period }) => ({
+        url: "/admin-api/dashboard/",
+        method: "GET",
+        params: { period },
+      }),
+      providesTags: ["Dashboard"],
+    }),
+
+    // Question endpoints
+
+    getQuestions: builder.query<
+      QuestionListResponse,
+      {
+        module: string;
+        page?: number;
+        search?: string;
+      }
+    >({
+      query: ({ module, page = 1, search = "" }) => ({
+        url: "/admin-api/questions/",
+        method: "GET",
+        params: { module, page, search },
+      }),
+      providesTags: (result, error, { module }) =>
+        result
+          ? [
+              { type: "Question", id: "LIST" },
+              ...result.results.map(({ id }) => ({
+                type: "Question" as const,
+                id,
+              })),
+              { type: "Question", id: `MODULE-${module}` },
+            ]
+          : [{ type: "Question", id: "LIST" }],
+    }),
+
+    createQuestion: builder.mutation<QuestionItem, CreateQuestionRequest>({
+      query: (body) => ({
+        url: "/admin-api/questions/",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: [{ type: "Question", id: "LIST" }],
+    }),
+
+    updateQuestion: builder.mutation<
+      QuestionItem,
+      { id: string } & Partial<CreateQuestionRequest>
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/admin-api/questions/${id}/`,
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Question", id },
+        { type: "Question", id: "LIST" },
+      ],
+    }),
+
+    deleteQuestion: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/admin-api/questions/${id}/`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Question", id: "LIST" }],
+    }),
+
+    // Question Buld Upload endpoint
+    downloadCsvTemplate: builder.query<string, void>({
+      query: () => ({
+        url: `/admin-api/demo-csv/`,
+        method: "GET",
+        responseHandler: "text", // ← Critical! Tells RTK to return raw text
+        cache: "no-cache",
+      }),
+    }),
+
+    uploadCsvQuestions: builder.mutation<
+      { message: string; error?: string },
+      { moduleId: string; file: File }
+    >({
+      query: ({ moduleId, file }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        return {
+          url: `/admin-api/upload-csv/${moduleId}/`,
+          method: "POST",
+          body: formData,
+          // Don't set Content-Type — browser sets it with boundary
+        };
+      },
+      invalidatesTags: [{ type: "Question", id: "LIST" }],
+    }),
+
+    // Synoptic Module endpoints
+    
+    getSynopticModules: builder.query<SynopticModuleResponse, {page?: number}>({
+      query: ({page = 1}) => ({
+        url: `/admin-api/synoptic-module/`,
+        method: "GET",
+        params: { page },
+      }),
+      providesTags: ["Module"],
+    }),
+    
+    createSynopticModule: builder.mutation<string[], string[]>({
+      query: (body) => ({
+        url: `/admin-api/synoptic-module/`,
+        method: "POST",
+        body:{module_ids:body},
+        credentials: "include",
+      }),
+      invalidatesTags: ["Module"],
     })
   }),
 });
@@ -215,8 +398,14 @@ export const {
   useLoginMutation,
   // Module Hooks
   useGetModulesQuery,
+  useGetModuleByIdQuery,
   useCreateModuleMutation,
+  useUpdateModuleMutation,
   useDeleteModuleMutation,
+  // Optional Module Hooks
+  useGetOptionalPairsQuery,
+  useCreateOptionalPairMutation,
+  useDeleteOptionalPairMutation,
   // Quiz Duration Hooks
   useGetQuizDurationsQuery,
   useCreateQuizDurationMutation,
@@ -226,8 +415,20 @@ export const {
   useGetProfileQuery,
   useUpdateProfileMutation,
   useChangePasswordMutation,
-  // Question Hooks
-  useGetQuestionQuery,
   // Student Hooks
   useGetStudentsQuery,
+  useGetStudentDetailQuery,
+  // Dashboard Hooks
+  useGetDashboardStatsQuery,
+  // Question Hooks
+  useGetQuestionsQuery,
+  useCreateQuestionMutation,
+  useUpdateQuestionMutation,
+  useDeleteQuestionMutation,
+  // Question Bulk Upload Hook
+  useLazyDownloadCsvTemplateQuery,
+  useUploadCsvQuestionsMutation,
+  // Synoptic Module Hooks
+  useGetSynopticModulesQuery,
+  useCreateSynopticModuleMutation,
 } = mainApi;

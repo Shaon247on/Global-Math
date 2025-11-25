@@ -132,7 +132,7 @@ export default function ManageStudent() {
   const endIndex = Math.min(currentPage * 10, totalCount);
 
   return (
-    <div className="w-full">
+    <div className="max-w-[1920px] mx-auto space-y-4">
       <div className="flex flex-col pt-4 lg:pt-0 bg-white lg:bg-transparent px-4 lg:px-0 pb-4 lg:pb-0 sm:flex-row gap-3 items-stretch justify-between sm:items-center">
         <div className="relative flex-1 bg-white max-w-xs">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />

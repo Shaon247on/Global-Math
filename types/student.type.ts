@@ -20,3 +20,36 @@ export interface Student {
   xp: number;
   active_subjects: number;
 }
+
+export interface StudentDetailsResponse {
+  profile: StudentInfo;
+  monthly_accuracy: MonthlyPerformance[];
+  subject_performance: SubjectWisePerformance[];
+  quiz_statistics: QuizSummary;
+}
+
+// student details interfaces
+
+export interface StudentInfo {
+  full_name: string;
+  email: string;
+  profile_pic: string | null;
+  xp: number;
+  rank: number;
+}
+
+export interface MonthlyPerformance {
+  month: string;
+  value: number; // performance score / accuracy
+}
+
+export interface SubjectWisePerformance {
+  subject: string;
+  accuracy: number;
+}
+
+export interface QuizSummary {
+  quiz_attempted: number;
+  average_score: number;
+  subject_covered: number;
+}

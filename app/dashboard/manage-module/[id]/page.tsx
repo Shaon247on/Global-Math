@@ -9,6 +9,7 @@ interface PageProps{
 
 async function page({params}: PageProps) {
     const {id} = await params
+
   return (
     <section>
       <ModelDetails id={id}/>
