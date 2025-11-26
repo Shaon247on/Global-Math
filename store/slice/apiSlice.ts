@@ -118,10 +118,7 @@ export const mainApi = createApi({
       invalidatesTags: ["Module"],
     }),
 
-    updateModule: builder.mutation<
-      ModuleCreateResponse,
-      ModuleCreateResponse
-    >({
+    updateModule: builder.mutation<ModuleCreateResponse, ModuleCreateResponse>({
       query: (body) => ({
         url: `/admin-api/modules-update/${body.id}/`,
         method: "PATCH",
@@ -269,21 +266,20 @@ export const mainApi = createApi({
       providesTags: ["StudentDetail"],
     }),
 
-    
-    banStudent: builder.mutation<{msg: string}, {user_id: string}>({
-      query: ({user_id}) =>({
+    banStudent: builder.mutation<{ msg: string }, { user_id: string }>({
+      query: ({ user_id }) => ({
         url: "/admin-api/ban-user/",
-        mehter: "POST",
-        body: {user_id},
+        method: "POST",
+        body: { user_id },
         credentials: "include",
       }),
       invalidatesTags: ["Student"],
     }),
-    unbanStudent: builder.mutation<{msg: string}, {user_id: string}>({
-      query: ({user_id}) =>({
+    unbanStudent: builder.mutation<{ msg: string }, { user_id: string }>({
+      query: ({ user_id }) => ({
         url: "/admin-api/unban-user/",
-        mehter: "POST",
-        body: {user_id},
+        method: "POST",
+        body: { user_id },
         credentials: "include",
       }),
       invalidatesTags: ["Student"],
@@ -302,7 +298,6 @@ export const mainApi = createApi({
       }),
       providesTags: ["Dashboard"],
     }),
-
 
     // Question endpoints
 
@@ -393,25 +388,28 @@ export const mainApi = createApi({
     }),
 
     // Synoptic Module endpoints
-    
-    getSynopticModules: builder.query<SynopticModuleResponse, {page?: number}>({
-      query: ({page = 1}) => ({
+
+    getSynopticModules: builder.query<
+      SynopticModuleResponse,
+      { page?: number }
+    >({
+      query: ({ page = 1 }) => ({
         url: `/admin-api/synoptic-module/`,
         method: "GET",
         params: { page },
       }),
       providesTags: ["Module"],
     }),
-    
+
     createSynopticModule: builder.mutation<string[], string[]>({
       query: (body) => ({
         url: `/admin-api/synoptic-module/`,
         method: "POST",
-        body:{module_ids:body},
+        body: { module_ids: body },
         credentials: "include",
       }),
       invalidatesTags: ["Module"],
-    })
+    }),
   }),
 });
 
