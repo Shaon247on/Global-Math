@@ -126,7 +126,7 @@ function AdminDashboard() {
 
             {/* Right Side */}
             <div className="h-full">
-              <SubjectPerformance data={subjectPerformance} isDashboard={true} />
+              <SubjectPerformance data={subjectPerformance.slice(0,8)} isDashboard={true} />
             </div>
           </div>
         </>

@@ -6,13 +6,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { removeCookie } from "@/hooks/cookie";
+import { useJwt } from "@/hooks/useJtw";
+import { toast } from "sonner";
 
 const ProfileDropdown = () => {
   const pathname = usePathname();
+  const user = useJwt()
   const isProfilePage = pathname === "/dashboard/settings";
 const handleLogout = ()=>{
+  toast.success("Logged out successfully");
   removeCookie("access_token");
   removeCookie("refresh_token");
+ window.location.href = "/";
 }
   return (
     <DropdownMenu>
@@ -25,12 +30,12 @@ const handleLogout = ()=>{
         >
           <Avatar className="h-10 w-10">
             <AvatarImage
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop"
+              src={user?.profile_pic || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop"}
               alt="Profile"
             />
             <AvatarFallback>JD</AvatarFallback>
           </Avatar>
-          <h4 className="text-lg hidden md:block">Alex David</h4>
+          <h4 className="text-lg hidden md:block">{user?.full_name}</h4>
           <ChevronDown size={24} className="size-5"/>
         </Button>
       </DropdownMenuTrigger>

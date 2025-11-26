@@ -34,6 +34,7 @@ import {
 } from "@/types/optionalModule.type";
 import { SynopticModuleResponse } from "@/types/synoptic.type";
 import page from "@/app/dashboard/page";
+import { string } from "zod";
 
 const BASE_URL = "http://10.10.13.96:8000";
 
@@ -268,6 +269,26 @@ export const mainApi = createApi({
       providesTags: ["StudentDetail"],
     }),
 
+    
+    banStudent: builder.mutation<{msg: string}, {user_id: string}>({
+      query: ({user_id}) =>({
+        url: "/admin-api/ban-user/",
+        mehter: "POST",
+        body: {user_id},
+        credentials: "include",
+      }),
+      invalidatesTags: ["Student"],
+    }),
+    unbanStudent: builder.mutation<{msg: string}, {user_id: string}>({
+      query: ({user_id}) =>({
+        url: "/admin-api/unban-user/",
+        mehter: "POST",
+        body: {user_id},
+        credentials: "include",
+      }),
+      invalidatesTags: ["Student"],
+    }),
+
     // Dashboard endpoints
 
     getDashboardStats: builder.query<
@@ -281,6 +302,7 @@ export const mainApi = createApi({
       }),
       providesTags: ["Dashboard"],
     }),
+
 
     // Question endpoints
 
@@ -418,6 +440,8 @@ export const {
   // Student Hooks
   useGetStudentsQuery,
   useGetStudentDetailQuery,
+  useBanStudentMutation,
+  useUnbanStudentMutation,
   // Dashboard Hooks
   useGetDashboardStatsQuery,
   // Question Hooks

@@ -18,12 +18,13 @@ import { loginSchema } from "@/schema/auth.schema";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useLoginMutation } from "@/store/slice/apiSlice";
-import { toast } from "sonner";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  const [login, { isLoading }] = useLoginMutation();
+
+  const [login] = useLoginMutation();
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -41,6 +42,7 @@ export default function LoginForm() {
 
     if (response.access_token) {
       router.push("/dashboard");
+      router.refresh()
     }
   };
 

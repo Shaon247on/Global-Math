@@ -26,9 +26,8 @@ import {
   Eye,
   Ban,
   SlidersHorizontal,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
+  Unlock,
 } from "lucide-react";
 import {
   Table,
@@ -48,8 +47,13 @@ import {
 } from "@/components/ui/pagination";
 import Link from "next/link";
 import { Student } from "@/types/student.type";
-import { useGetStudentsQuery } from "@/store/slice/apiSlice";
+import {
+  useBanStudentMutation,
+  useGetStudentsQuery,
+  useUnbanStudentMutation,
+} from "@/store/slice/apiSlice";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Badge } from "@/components/ui/badge";
 
 type TimeFrame = "daily" | "weekly" | "monthly" | "yearly";
 type FilterBy = "quiz_attempts" | "xp" | "active_subjects";
@@ -71,6 +75,8 @@ export default function ManageStudent() {
     duration: timeFrame,
     search: debouncedSearch || undefined,
   });
+  const [banStudent] = useBanStudentMutation();
+  const [unbanStudent] = useUnbanStudentMutation();
 
   const students = data?.results || [];
   const totalCount = data?.count || 0;
@@ -79,13 +85,19 @@ export default function ManageStudent() {
   const handleBlockStudent = (student: Student) => {
     setStudentToBlock(student);
   };
+  const handleUnblockStudent = (student: Student) => {
+    setStudentToBlock(student);
+  };
 
   const confirmBlock = () => {
-    if (studentToBlock) {
-      console.log("Blocking student:", studentToBlock);
-      // TODO: Call block API endpoint here
-      setStudentToBlock(null);
-    }
+    if (!studentToBlock) return;
+    banStudent({ user_id: studentToBlock.id });
+    setStudentToBlock(null);
+  };
+  const confirmUnBlock = () => {
+    if (!studentToBlock) return;
+    unbanStudent({ user_id: studentToBlock.id });
+    setStudentToBlock(null);
   };
 
   const handleViewStudent = (student: Student) => {
@@ -207,9 +219,14 @@ export default function ManageStudent() {
                   <TableRow className="bg-gray-50">
                     <TableHead className="font-semibold">Rank</TableHead>
                     <TableHead className="font-semibold">Profile</TableHead>
-                    <TableHead className="font-semibold md:pl-8">Name</TableHead>
-                    <TableHead className="font-semibold">Quiz Attempts</TableHead>
+                    <TableHead className="font-semibold md:pl-8">
+                      Name
+                    </TableHead>
+                    <TableHead className="font-semibold">
+                      Quiz Attempts
+                    </TableHead>
                     <TableHead className="font-semibold">XP</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
                     <TableHead className="font-semibold pl-10 xl:w-52">
                       Active Subjects
                     </TableHead>
@@ -219,16 +236,13 @@ export default function ManageStudent() {
                 </TableHeader>
                 <TableBody>
                   {students.map((student, index) => (
-                    <TableRow
-                      key={student.id}
-                      className="hover:bg-gray-50"
-                    >
+                    <TableRow key={student.id} className="hover:bg-gray-50">
                       <TableCell>{startIndex + index}</TableCell>
                       <TableCell>
                         <Avatar className="h-10 w-10">
-                          <AvatarImage 
-                            src={student.profile_pic || undefined} 
-                            alt={student.full_name} 
+                          <AvatarImage
+                            src={student.profile_pic || undefined}
+                            alt={student.full_name}
                           />
                           <AvatarFallback>
                             {getInitials(student.full_name)}
@@ -240,6 +254,18 @@ export default function ManageStudent() {
                       </TableCell>
                       <TableCell className="md:pl-10 font-medium">
                         {student.quiz_attempts}
+                      </TableCell>
+                      <TableCell className="md:pl-20">
+                        <Badge
+                          variant={"default"}
+                          className={`${
+                            student.is_banned === false
+                              ? "bg-blue-300 text-blue-600"
+                              : "bg-red-300 text-red-600"
+                          }`}
+                        >
+                          {student.is_banned === true ? "Banned" : "Active"}
+                        </Badge>
                       </TableCell>
                       <TableCell>{student.xp}</TableCell>
                       <TableCell className="md:pl-20">
@@ -260,14 +286,25 @@ export default function ManageStudent() {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleBlockStudent(student)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Ban className="h-5 w-5" />
-                        </Button>
+                        {student.is_banned === true ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleUnblockStudent(student)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Unlock className="h-5 w-5" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleBlockStudent(student)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Ban className="h-5 w-5" />
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -284,9 +321,9 @@ export default function ManageStudent() {
                   <div className="flex items-start gap-3">
                     <div className="shrink-0">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage 
-                          src={student.profile_pic || undefined} 
-                          alt={student.full_name} 
+                        <AvatarImage
+                          src={student.profile_pic || undefined}
+                          alt={student.full_name}
                         />
                         <AvatarFallback>
                           {getInitials(student.full_name)}
@@ -423,11 +460,12 @@ export default function ManageStudent() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Are you sure to Block the student?
+              Are you sure to {studentToBlock?.is_banned ? "Unban" : "Ban"} the
+              student?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action will block {studentToBlock?.full_name} from accessing the
-              platform.
+              This action will {studentToBlock?.is_banned ? "Unban" : "Ban"}{" "}
+              {studentToBlock?.full_name}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3 sm:gap-2">
@@ -435,10 +473,16 @@ export default function ManageStudent() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmBlock}
-              className="bg-red-600 text-white hover:bg-red-700 flex-1 sm:flex-none"
+              onClick={
+                studentToBlock?.is_banned ? confirmUnBlock : confirmBlock
+              }
+              className={` flex-1 sm:flex-none ${
+                studentToBlock?.is_banned
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "bg-red-600 hover:bg-red-700"
+              } text-white mt-0`}
             >
-              Block
+              {studentToBlock?.is_banned ? "Unban" : "Ban"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

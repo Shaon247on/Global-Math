@@ -19,6 +19,7 @@ export interface Student {
   quiz_attempts: number;
   xp: number;
   active_subjects: number;
+  is_banned: boolean;
 }
 
 export interface StudentDetailsResponse {
