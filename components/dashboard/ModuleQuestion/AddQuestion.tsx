@@ -265,7 +265,7 @@ export default function AddQuestion({
             </div>
 
             <div className="flex justify-center gap-3 pt-4">
-              {!editMode && (
+              {/* {!editMode && (
                 <Button
                   type="button"
                   variant="outline"
@@ -275,7 +275,7 @@ export default function AddQuestion({
                   <Plus className="h-4 w-4 mr-2" />
                   Add Question
                 </Button>
-              )}
+              )} */}
               <Button
                 type="submit"
                 className="bg-[#5CA1FE] hover:bg-[#5CA1FE]/90 text-white min-w-[150px]"
@@ -285,8 +285,8 @@ export default function AddQuestion({
                 {isCreating || isUpdating
                   ? "Saving..."
                   : editMode
-                  ? "Update"
-                  : "Upload"}
+                  ? "Add Question"
+                  : "Add Question"}
               </Button>
             </div>
           </form>
