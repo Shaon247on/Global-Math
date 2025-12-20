@@ -33,8 +33,6 @@ import {
   OptionModuleResponse,
 } from "@/types/optionalModule.type";
 import { SynopticModuleResponse } from "@/types/synoptic.type";
-import page from "@/app/dashboard/page";
-import { string } from "zod";
 
 const BASE_URL = "http://10.10.13.96:8000";
 
@@ -133,10 +131,7 @@ export const mainApi = createApi({
         url: `/admin-api/modules/${id}/delete/`,
         method: "DELETE",
       }),
-      invalidatesTags: (_result, _error, { id }) => [
-        { type: "Module", id },
-        { type: "Module", id: "LIST" },
-      ],
+      invalidatesTags: ["Module"]
     }),
 
     // optional module endpoints
