@@ -34,7 +34,7 @@ import {
 } from "@/types/optionalModule.type";
 import { SynopticModuleResponse } from "@/types/synoptic.type";
 
-const BASE_URL = "http://10.10.13.96:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://10.10.13.96:8000";
 
 export const mainApi = createApi({
   reducerPath: "mainApi",
@@ -91,6 +91,15 @@ export const mainApi = createApi({
         }
       },
     }),
+
+    deleteAccount: builder.mutation<{ message: string }, { password: string }>({
+  query: (body) => ({
+    url: "/auth/delete-account/",
+    method: "POST",
+    body,
+    credentials: "include",
+  }),
+}),
 
     // Module endpoints
 
@@ -411,6 +420,7 @@ export const mainApi = createApi({
 export const {
   // auth Hooks
   useLoginMutation,
+  useDeleteAccountMutation,
   // Module Hooks
   useGetModulesQuery,
   useGetModuleByIdQuery,
