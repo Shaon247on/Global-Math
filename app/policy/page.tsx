@@ -522,11 +522,13 @@ const PrivacyPolicyPage = () => {
                 </p>
                 <div className="space-y-2">
                   <p>
-                    <strong>Email:</strong> privacy@geographyquiz.com
+                    <strong>Email:</strong> simon@standsureeducation.co.uk
                   </p>
                   <p>
-                    <strong>Address:</strong> 123 Education Street, Learning
-                    City, ED 12345
+                    <strong>Phone:</strong> +447753199769
+                  </p>
+                  <p>
+                    <strong>Address:</strong> 8 Burford Anderson, Bramhall, Stockport, SK7 1BL, United Kingdom
                   </p>
                   <p>
                     <strong>Response Time:</strong> We aim to respond within 48
